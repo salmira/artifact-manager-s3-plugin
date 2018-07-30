@@ -90,6 +90,7 @@ the same configuration page.
 * S3 Bucket Name: Name of the S3 Bucket to use to store artifacts.
 * S3 Bucket Region: Region to use to generate the URLs to get/put artifacts, by default it is autodetected.
 * Base Prefix: Prefix to use for files and folders inside the S3 Bucket, if the prefix is a folder should be end with `/`.
+* Use Accelerated Endpoint: Use accelerated endpoint for the S3 Bucket.
 
 ![](images/bucket-settings.png)
 
@@ -230,6 +231,7 @@ Add to your `~/.m2/settings.xml`:
                 <AWS_REGION>…</AWS_REGION>
                 <S3_BUCKET>…</S3_BUCKET>
                 <S3_DIR>…/</S3_DIR>
+                <S3_ACCELERATED>…/</S3_ACCELERATED>
             </properties>
         </profile>
     </profiles>

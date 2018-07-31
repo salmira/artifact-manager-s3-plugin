@@ -121,86 +121,22 @@ public final class JCloudsArtifactManager extends ArtifactManager implements Sta
     public void archive(FilePath workspace, Launcher launcher, BuildListener listener, Map<String, String> artifacts)
             throws IOException, InterruptedException {
         LOGGER.log(Level.FINE, "Archiving from {0}: {1}", new Object[] { workspace, artifacts });
-        Map<String, String> contentTypes = workspace.act(new ContentTypeGuesser(new ArrayList<>(artifacts.values()), listener));
-        LOGGER.fine(() -> "guessing content types: " + contentTypes);
-        Map<String, URL> artifactUrls = new HashMap<>();
-        BlobStore blobStore = getContext().getBlobStore();
 
         // Map artifacts to urls for upload
         for (Map.Entry<String, String> entry : artifacts.entrySet()) {
             String path = "artifacts/" + entry.getKey();
             String blobPath = getBlobPath(path);
-            Blob blob = blobStore.blobBuilder(blobPath).build();
-            blob.getMetadata().setContainer(provider.getContainer());
-            blob.getMetadata().getContentMetadata().setContentType(contentTypes.get(entry.getValue()));
-            artifactUrls.put(entry.getValue(), provider.toExternalURL(blob, HttpMethod.PUT));
-        }
+            String remotePath = "s3://" + provider.getContainer() + "/" + blobPath;
+            listener.getLogger().printf("Copy %s to %s%n", entry.getValue(), remotePath);
 
-        workspace.act(new UploadToBlobStorage(artifactUrls, contentTypes, listener));
-        listener.getLogger().printf("Uploaded %s artifact(s) to %s%n", artifactUrls.size(), provider.toURI(provider.getContainer(), getBlobPath("artifacts/")));
-    }
-
-    private static class ContentTypeGuesser extends MasterToSlaveFileCallable<Map<String, String>> {
-        private static final long serialVersionUID = 1L;
-
-        private final Collection<String> relPaths;
-        private final TaskListener listener;
-
-        ContentTypeGuesser(Collection<String> relPaths, TaskListener listener) {
-            this.relPaths = relPaths;
-            this.listener = listener;
-        }
-
-        @Override
-        public Map<String, String> invoke(File f, VirtualChannel channel) {
-            Map<String, String> contentTypes = new HashMap<>();
-            for (String relPath : relPaths) {
-                File theFile = new File(f, relPath);
-                try {
-                    String contentType = Files.probeContentType(theFile.toPath());
-                    if (contentType == null) {
-                        contentType = URLConnection.guessContentTypeFromName(theFile.getName());
-                    }
-                    if (contentType == null) {
-                        contentType = detectByTika(theFile);
-                    }
-                    contentTypes.put(relPath, contentType);
-                } catch (IOException e) {
-                    Functions.printStackTrace(e, listener.error("Unable to determine content type for file: " + theFile));
-                    // A content type must be specified; otherwise, the metadata signature will be computed from data that includes "Content-Type:", but no such HTTP header will be sent, and AWS will reject the request.
-                    contentTypes.put(relPath, "application/octet-stream");
-                }
+            String[] cmd = {"aws", "s3", "cp", "--quiet", "--no-guess-mime-type", entry.getValue(), remotePath};
+            int cmdResult = launcher.launch(cmd, new String[0], null, listener.getLogger(), workspace).join();
+            if (cmdResult != 0) {
+                listener.getLogger().printf("Copy FAILED!%n");
             }
-            return contentTypes;
-        }
-    }
-
-    private static class UploadToBlobStorage extends MasterToSlaveFileCallable<Void> {
-        private static final long serialVersionUID = 1L;
-
-        private final Map<String, URL> artifactUrls; // e.g. "target/x.war", "http://..."
-        private final Map<String, String> contentTypes; // e.g. "target/x.zip, "application/zip"
-        private final TaskListener listener;
-        // Bind when constructed on the master side; on the agent side, deserialize the same configuration.
-        private final RobustHTTPClient client = JCloudsArtifactManager.client;
-
-        UploadToBlobStorage(Map<String, URL> artifactUrls, Map<String, String> contentTypes, TaskListener listener) {
-            this.artifactUrls = artifactUrls;
-            this.contentTypes = contentTypes;
-            this.listener = listener;
         }
 
-        @Override
-        public Void invoke(File f, VirtualChannel channel) throws IOException, InterruptedException {
-            try {
-                for (Map.Entry<String, URL> entry : artifactUrls.entrySet()) {
-                    client.uploadFile(new File(f, entry.getKey()), contentTypes.get(entry.getKey()), entry.getValue(), listener);
-                }
-            } finally {
-                listener.getLogger().flush();
-            }
-            return null;
-        }
+        listener.getLogger().printf("Uploaded %s artifact(s) to %s%n", artifacts.size(), provider.toURI(provider.getContainer(), getBlobPath("artifacts/")));
     }
 
     @Override

@@ -115,42 +115,23 @@ public final class JCloudsArtifactManager extends ArtifactManager implements Sta
     public void archive(FilePath workspace, Launcher launcher, BuildListener listener, Map<String, String> artifacts)
             throws IOException, InterruptedException {
         LOGGER.log(Level.FINE, "Archiving from {0}: {1}", new Object[] { workspace, artifacts });
-        Map<String, URL> artifactUrls = new HashMap<>();
         BlobStore blobStore = getContext().getBlobStore();
 
         // Map artifacts to urls for upload
         for (Map.Entry<String, String> entry : artifacts.entrySet()) {
             String path = "artifacts/" + entry.getKey();
             String blobPath = getBlobPath(path);
-            Blob blob = blobStore.blobBuilder(blobPath).build();
-            blob.getMetadata().setContainer(provider.getContainer());
-            artifactUrls.put(entry.getValue(), provider.toExternalURL(blob, HttpMethod.PUT));
-        }
+            String remotePath = "s3://" + provider.getContainer() + "/" + blobPath;
+            listener.getLogger().printf("Copy %s to %s%n", entry.getValue(), remotePath);
 
-        workspace.act(new UploadToBlobStorage(artifactUrls, listener));
-        listener.getLogger().printf("Uploaded %s artifact(s) to %s%n", artifactUrls.size(), provider.toURI(provider.getContainer(), getBlobPath("artifacts/")));
-    }
-
-    private static class UploadToBlobStorage extends MasterToSlaveFileCallable<Void> {
-        private static final long serialVersionUID = 1L;
-
-        private final Map<String, URL> artifactUrls; // e.g. "target/x.war", "http://..."
-        private final TaskListener listener;
-        // Bind when constructed on the master side; on the agent side, deserialize the same configuration.
-        private final RobustHTTPClient client = JCloudsArtifactManager.client;
-
-        UploadToBlobStorage(Map<String, URL> artifactUrls, TaskListener listener) {
-            this.artifactUrls = artifactUrls;
-            this.listener = listener;
-        }
-
-        @Override
-        public Void invoke(File f, VirtualChannel channel) throws IOException, InterruptedException {
-            for (Map.Entry<String, URL> entry : artifactUrls.entrySet()) {
-                client.uploadFile(new File(f, entry.getKey()), entry.getValue(), listener);
+            String[] cmd = {"aws", "s3", "cp", "--quiet", "--no-guess-mime-type", entry.getValue(), remotePath};
+            int cmdResult = launcher.launch(cmd, new String[0], null, listener.getLogger(), workspace).join();
+            if (cmdResult != 0) {
+                listener.getLogger().printf("Copy FAILED!%n");
             }
-            return null;
         }
+
+        listener.getLogger().printf("Uploaded %s artifact(s) to %s%n", artifacts.size(), provider.toURI(provider.getContainer(), getBlobPath("artifacts/")));
     }
 
     @Override

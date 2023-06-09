@@ -14,14 +14,14 @@
   <packaging>hpi</packaging>
 
   <properties>
-    <changelist>999999-SNAPSHOT</changelist>
+    <changelist>670.v0558a_cb_c82c2.patch1.v2</changelist>
     <jenkins.version>2.332.1</jenkins.version>
     <useBeta>true</useBeta>
   </properties>
 
   <name>Artifact Manager on S3 plugin</name>
-  <description>A Jenkins plugin to keep artifacts and Pipeline stashes in Amazon S3.</description>
   <url>https://github.com/jenkinsci/${project.artifactId}-plugin</url>
+  <description>A Jenkins plugin to keep artifacts and Pipeline stashes in Amazon S3 (AWS CLI).</description>
   <licenses>
     <license>
       <name>MIT License</name>

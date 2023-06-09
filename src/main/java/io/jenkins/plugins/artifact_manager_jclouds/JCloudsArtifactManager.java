@@ -120,8 +120,9 @@ public final class JCloudsArtifactManager extends ArtifactManager implements Sta
     @Override
     public void archive(FilePath workspace, Launcher launcher, BuildListener listener, Map<String, String> artifacts)
             throws IOException, InterruptedException {
-        LOGGER.log(Level.FINE, "Archiving from {0}: {1}", new Object[] { workspace, artifacts });
-        LOGGER.fine(() -> "guessing content types: " + false);
+        LOGGER.log(Level.FINE, "Archiving by means of AWS CLI from {0}: {1}", new Object[] { workspace, artifacts });
+        LOGGER.fine(() -> "ignore guessing content types");
+        Map<String, URL> artifactUrls = new HashMap<>();
 
         // Map artifacts to urls for upload
         for (Map.Entry<String, String> entry : artifacts.entrySet()) {
@@ -133,11 +134,18 @@ public final class JCloudsArtifactManager extends ArtifactManager implements Sta
             String[] cmd = {"aws", "s3", "cp", "--quiet", "--no-guess-mime-type", entry.getValue(), remotePath};
             int cmdResult = launcher.launch(cmd, new String[0], null, listener.getLogger(), workspace).join();
             if (cmdResult != 0) {
-                listener.getLogger().printf("Copy FAILED!%n");
+                listener.getLogger().printf("Copy FAILED! %s%n", cmdResult);
+            }
+            else {
+                artifactUrls.put(entry.getValue(), remotePath);
             }
         }
 
-        listener.getLogger().printf("Uploaded %s artifact(s) to %s%n", artifacts.size(), provider.toURI(provider.getContainer(), getBlobPath("artifacts/")));
+        listener.getLogger().printf("Uploaded %s artifact(s) to %s%n", artifactUrls.size(), provider.toURI(provider.getContainer(), getBlobPath("artifacts/")));
+        int failedUploads = artifacts.size() > artifactUrls.size();
+        if ( failedUploads > 0 ) {
+            listener.getLogger().printf("Upload failed for %d artifact(s)%n", failedUploads);
+        }
     }
 
     @Override

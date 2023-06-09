@@ -1,5 +1,6 @@
 <?xml version="1.0" encoding="UTF-8"?>
 <?jelly escape-by-default='true'?>
 <div>
-    A Jenkins plugin to keep artifacts and Pipeline stashes in Amazon S3.
+    A Jenkins plugin to keep artifacts and Pipeline stashes in Amazon S3 (AWS CLI)
+    AWS CLI is used to archive artifacts in order to avoid issues with big files.
 </div>

@@ -776,24 +776,38 @@ java.lang.NullPointerException
 # Build Plugin Package
 ## Prerequisites
  * RequireMavenVersion: 3.8.1 required to no longer download dependencies via HTTP (use HTTPS instead)
+
 ## Build Plugin Package
 In order to build the plugin, run the following command in the plugin source code folder:
-  mvn clean package hpi:hpi
-
-### Known Build Issues:
-#### Failed Plugin Tests
-Plugin tests are disabled because are not adopted for AWS CLI usage.
-#### Failed Build Tests
-On a clean project, the build command "mvn package" is required prior "mvn hpi:hpi".
-Otherwise, the following error would occure despite of an existatce of file src/main/resources/index.jelly:
-  Missing target/classes/index.jelly. Delete any <description> from pom.xml and create src/main/resources/index.jelly:
-  [ERROR] <?jelly escape-by-default='true'?>
-  [ERROR] <div>
-  [ERROR]     The description here…
-  [ERROR] </div>
+```
+  mvn clean package
+```
+After any changes, possible to run just:
+```
+  mvn hpi:hpi
+```
+### Known Build Issues
+#### Disabled Plugin Tests
+Plugin tests are disabled because tests are not adopted for AWS CLI usage and would fail.
+#### Failed Build Target
+On a clean project, the build command `mvn package` is required prior `mvn hpi:hpi`.
+Otherwise `mvn hpi:hpi` would cause the following error despite of 
+absence of <description> in pom.xml and the existence of file src/main/resources/index.jelly:
+```
+[ERROR] Failed to execute goal org.jenkins-ci.tools:maven-hpi-plugin:3.32:hpi (default-cli) on project artifact-manager-s3:
+Missing target/classes/index.jelly. Delete any <description> from pom.xml and create src/main/resources/index.jelly:
+[ERROR] <?jelly escape-by-default='true'?>
+[ERROR] <div>
+[ERROR]     The description here…
+[ERROR] </div>
+```
 
 
 # Changelog
+
+## Patch
+- AWS CLI usage instead of AWS API. AWS CLI usage for files upload allows to avoid issues with big files upload.
+- Tests are disabled as not adapted for AWS CLI usage.
 
 ## 1.7 and newer
 

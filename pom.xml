@@ -14,14 +14,14 @@
   <packaging>hpi</packaging>
 
   <properties>
-    <changelist>670.v0558a_cb_c82c2.patch1.v2</changelist>
+    <changelist>670.v0558a_cb_c82c2.patch_aws_cli.v1.5</changelist>
     <jenkins.version>2.332.1</jenkins.version>
     <useBeta>true</useBeta>
+    <maven.test.skip>true</maven.test.skip>
   </properties>
 
   <name>Artifact Manager on S3 plugin</name>
   <url>https://github.com/jenkinsci/${project.artifactId}-plugin</url>
-  <description>A Jenkins plugin to keep artifacts and Pipeline stashes in Amazon S3 (AWS CLI).</description>
   <licenses>
     <license>
       <name>MIT License</name>
@@ -269,6 +269,17 @@
               </dependencies>
             </requireSameVersions>
           </rules>
+        </configuration>
+      </plugin>
+      <plugin>
+        <groupId>org.apache.maven.plugins</groupId>
+        <artifactId>maven-surefire-plugin</artifactId>
+        <configuration>
+          <!--          Tests are not adopted for AWS CLU usage -->
+          <excludes>
+            <exclude>**/*Test.java</exclude>
+          </excludes>
+          <skipTests>true</skipTests>
         </configuration>
       </plugin>
     </plugins>

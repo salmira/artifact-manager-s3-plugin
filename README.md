@@ -772,6 +772,27 @@ java.lang.NullPointerException
 	at java.lang.Thread.run(Thread.java:748)
 ```
 
+
+# Build Plugin Package
+## Prerequisites
+ * RequireMavenVersion: 3.8.1 required to no longer download dependencies via HTTP (use HTTPS instead)
+## Build Plugin Package
+In order to build the plugin, run the following command in the plugin source code folder:
+  mvn clean package hpi:hpi
+
+### Known Build Issues:
+#### Failed Plugin Tests
+Plugin tests are disabled because are not adopted for AWS CLI usage.
+#### Failed Build Tests
+On a clean project, the build command "mvn package" is required prior "mvn hpi:hpi".
+Otherwise, the following error would occure despite of an existatce of file src/main/resources/index.jelly:
+  Missing target/classes/index.jelly. Delete any <description> from pom.xml and create src/main/resources/index.jelly:
+  [ERROR] <?jelly escape-by-default='true'?>
+  [ERROR] <div>
+  [ERROR]     The description here…
+  [ERROR] </div>
+
+
 # Changelog
 
 ## 1.7 and newer

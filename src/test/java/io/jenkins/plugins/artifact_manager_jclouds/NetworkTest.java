@@ -100,10 +100,11 @@ public class NetworkTest {
         failIn(BlobStoreProvider.HttpMethod.PUT, "p/1/artifacts/f", 403, 0);
         p.setDefinition(new CpsFlowDefinition("node('remote') {writeFile file: 'f', text: '.'; archiveArtifacts 'f'}", true));
         WorkflowRun b = r.assertBuildStatus(Result.FAILURE, p.scheduleBuild2(0));
-        r.assertLogContains("ERROR: Failed to upload", b);
-        r.assertLogContains("/container/p/1/artifacts/f?…, response: 403 simulated 403 failure, body: Detailed explanation of 403.", b);
+        r.assertLogContains("Copy FAILED! 1", b);
+        r.assertLogContains("Uploaded 0 artifact(s) to mock://container/p/1/artifacts/", b);
+        r.assertLogContains("FAILED AWS upload 1 artifact(s) of 1", b);
         r.assertLogNotContains("Retrying upload", b);
-        r.assertLogNotContains("\tat hudson.tasks.ArtifactArchiver.perform", b);
+        r.assertLogContains("\tat hudson.tasks.ArtifactArchiver.perform", b);
     }
 
     @Test

@@ -122,7 +122,7 @@ public final class JCloudsArtifactManager extends ArtifactManager implements Sta
             throws IOException, InterruptedException {
         LOGGER.log(Level.FINE, "Archiving by means of AWS CLI from {0}: {1}", new Object[] { workspace, artifacts });
         LOGGER.fine(() -> "ignore guessing content types");
-        Map<String, URL> artifactUrls = new HashMap<>();
+        Map<String, String> artifactUrls = new HashMap<>();
 
         // Map artifacts to urls for upload
         for (Map.Entry<String, String> entry : artifacts.entrySet()) {
@@ -131,20 +131,29 @@ public final class JCloudsArtifactManager extends ArtifactManager implements Sta
             String remotePath = "s3://" + provider.getContainer() + "/" + blobPath;
             listener.getLogger().printf("Copy %s to %s%n", entry.getValue(), remotePath);
 
-            String[] cmd = {"aws", "s3", "cp", "--quiet", "--no-guess-mime-type", entry.getValue(), remotePath};
+            String[] cmd = {"aws",
+                    "s3",
+                    "cp",
+                    "--quiet",
+                    "--no-guess-mime-type",
+                    entry.getValue(), remotePath,
+                    "--storage-class", "STANDARD_IA"};
             int cmdResult = launcher.launch(cmd, new String[0], null, listener.getLogger(), workspace).join();
-            if (cmdResult != 0) {
-                listener.getLogger().printf("Copy FAILED! %s%n", cmdResult);
+            if (cmdResult == 0) {
+                artifactUrls.put(entry.getValue(), remotePath);
             }
             else {
-                artifactUrls.put(entry.getValue(), remotePath);
+                listener.getLogger().printf("Copy FAILED! %s%n", cmdResult);
             }
         }
 
-        listener.getLogger().printf("Uploaded %s artifact(s) to %s%n", artifactUrls.size(), provider.toURI(provider.getContainer(), getBlobPath("artifacts/")));
-        int failedUploads = artifacts.size() > artifactUrls.size();
+        listener.getLogger().printf("Uploaded %s artifact(s) to %s%n", artifactUrls.size(),
+                provider.toURI(provider.getContainer(), getBlobPath("artifacts/")));
+        int failedUploads = artifacts.size() - artifactUrls.size();
         if ( failedUploads > 0 ) {
-            listener.getLogger().printf("Upload failed for %d artifact(s)%n", failedUploads);
+            String msg = String.format("FAILED AWS upload %s artifact(s) of %s%n", failedUploads, artifacts.size());
+            listener.getLogger().printf(msg);
+            throw new InterruptedException(msg);
         }
     }
 
